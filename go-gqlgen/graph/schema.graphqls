@@ -1,0 +1,58 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type IncidentReport {
+  date: String!
+  id: String!
+  injuryLocation: String!
+  gender: String!
+  ageGroup: String!
+  incidentType: String!
+  daysLost: String!
+  plant: String!
+  reportType: String!
+  shift: String!
+  department: String!
+  incidentCost: String!
+  wkday: String
+  month: Int!
+  year: Int!
+  is_active: Boolean!
+  is_deleted: Boolean!
+}
+type Query {
+  getIncidentReports: [IncidentReport!]!
+  getIncidentReportById(id: String!): IncidentReport!
+}
+
+type Mutation {
+  importDataFromExel: reportCreated!
+  addReport(input: addReportInput!): [IncidentReport!]!
+  updateReport(input: addReportInput!): reportCreated!
+  deleteReport(id: String!): reportCreated!
+}
+
+input addReportInput {
+  date: String
+  id: String
+  injuryLocation: String
+  gender: String
+  ageGroup: String
+  incidentType: String
+  daysLost: String
+  plant: String
+  reportType: String
+  shift: String
+  department: String
+  incidentCost: String
+  wkday: String
+  month: Int
+  year: Int
+  is_active: Boolean
+  is_deleted: Boolean
+}
+
+type reportCreated {
+  message: String!
+}

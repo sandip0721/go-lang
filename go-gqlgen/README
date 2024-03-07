@@ -1,0 +1,37 @@
+# go lang assessment
+
+1. Create a new folder for the Project -
+
+   `mkdir go-gqlgen`
+
+2. Mod init your project, give it whatever name you like
+
+   `go mod init go-gqlgen`
+
+3. Get gql gen for your project
+
+   `go get github.com/99designs/gqlgen`
+
+4. Add gqlgen to tools.go
+
+   `printf '// +build tools\npackage tools\nimport _ "github.com/99designs/gqlgen"' | gofmt > tools.go`
+
+5. Get all the dependencies
+
+   `go mod tidy`
+
+6. Initialize your project
+
+   `go run github.com/99designs/gqlgen init`
+
+7. After you've written the graphql schema, run this - `go run github.com/99designs/gqlgen generate`
+
+8. To run the project - `go run ./server.go`
+
+9. database folder consist a database and redis connection.
+
+10. API endpoints and schema are define in schema.graphqls.
+
+11. all the business logic are in logic folder.
+
+12. constants are imported from constants file.
