@@ -118,7 +118,7 @@ func InsetDataToDatabase(db *sql.DB, rowData []string) (string, error) {
 // InsertDataToRedis inserts data into Redis
 func InsertDataToRedis(rdb *redis.Client, id string, rowData []string) error {
 	// Construct Redis key
-	key := fmt.Sprintf(id)
+	key := fmt.Sprintf("id:%s", id)
 
 	// Convert rowData to map[string]interface{} for Redis hash
 	data := make(map[string]interface{})
@@ -143,7 +143,7 @@ func InsertDataToRedis(rdb *redis.Client, id string, rowData []string) error {
 		return err
 	}
 
-	fmt.Println("Data inserted into Redis:", key)
+	fmt.Println(constants.RedisDataInserted, key)
 	return nil
 }
 
@@ -156,7 +156,7 @@ func AddIncidentReport(ctx context.Context, input *model.AddReportInput) ([]*mod
 	// Connect to MySQL database
 	db, err := database.ConnectMySQLDB()
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %s", err)
+		return nil, fmt.Errorf(constants.FailedToConnectDb, err)
 	}
 
 	// Prepare the INSERT query
@@ -310,6 +310,9 @@ func UpdateIncidentReport(ctx context.Context, input *model.AddReportInput) (*mo
 		return nil, fmt.Errorf(constants.FailedToConnectDb, err)
 	}
 
+	// Connect to Redis
+	rdb := database.ConnectRedis()
+
 	//check if data exist
 	_, err = GetIncidentReportByID(ctx, *input.ID)
 
@@ -350,6 +353,58 @@ func UpdateIncidentReport(ctx context.Context, input *model.AddReportInput) (*mo
 		return nil, err
 	}
 
+	//update data in redis
+	go func() {
+		// Convert input to a map[string]interface{}
+		updatedData := make(map[string]interface{})
+
+		if input.InjuryLocation != nil {
+			updatedData["injury_location"] = *input.InjuryLocation
+		}
+		if input.Gender != nil {
+			updatedData["gender"] = *input.Gender
+		}
+		if input.AgeGroup != nil {
+			updatedData["age_group"] = *input.AgeGroup
+		}
+		if input.IncidentType != nil {
+			updatedData["incident_type"] = *input.IncidentType
+		}
+		if input.DaysLost != nil {
+			updatedData["days_lost"] = *input.DaysLost
+		}
+		if input.Plant != nil {
+			updatedData["plant"] = *input.Plant
+		}
+		if input.ReportType != nil {
+			updatedData["report_type"] = *input.ReportType
+		}
+		if input.Shift != nil {
+			updatedData["shift"] = *input.Shift
+		}
+		if input.Department != nil {
+			updatedData["department"] = *input.Department
+		}
+		if input.IncidentCost != nil {
+			updatedData["incident_cost"] = *input.IncidentCost
+		}
+		if input.Wkday != nil {
+			updatedData["wkday"] = *input.Wkday
+		}
+		if input.Month != nil {
+			updatedData["month"] = *input.Month
+		}
+		if input.Year != nil {
+			updatedData["year"] = *input.Year
+		}
+
+		err := UpdateDataInRedis(rdb, *input.ID, updatedData)
+		if err != nil {
+			fmt.Println(constants.FailedToUpdateRedisData, err)
+		}
+
+	}()
+
 	// Construct the response
 	response := &model.ReportCreated{
 		Message: constants.IncidentReportUpdated,
@@ -357,7 +412,26 @@ func UpdateIncidentReport(ctx context.Context, input *model.AddReportInput) (*mo
 	return response, nil
 }
 
-// function to delete report
+// Update the data in redis
+func UpdateDataInRedis(rdb *redis.Client, id string, updatedData map[string]interface{}) error {
+	// Construct Redis key
+	key := fmt.Sprintf("id:%s", id)
+
+	// Set hash data in Redis
+	err := rdb.HMSet(key, updatedData).Err()
+	if err != nil {
+		return err
+	}
+
+	//get data from redis
+	// result, err := GetDataByIDFromRedis(rdb, id)
+	// fmt.Println("result", result)
+
+	fmt.Println(constants.RedisDataUpdated, key)
+	return nil
+}
+
+// function to delete data
 func DeleteIncidentReport(ctx context.Context, id string) (*model.ReportCreated, error) {
 	// Connect to MySQL database
 	db, err := database.ConnectMySQLDB()
@@ -388,4 +462,16 @@ func DeleteIncidentReport(ctx context.Context, id string) (*model.ReportCreated,
 		Message: constants.IncidentReportDeleted,
 	}
 	return response, err
+}
+
+func GetDataByIDFromRedis(rdb *redis.Client, id string) (map[string]string, error) {
+	// Construct Redis key
+	key := fmt.Sprintf("id:%s", id)
+
+	data, err := rdb.HGetAll(key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
