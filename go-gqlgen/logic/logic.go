@@ -412,25 +412,6 @@ func UpdateIncidentReport(ctx context.Context, input *model.AddReportInput) (*mo
 	return response, nil
 }
 
-// Update the data in redis
-func UpdateDataInRedis(rdb *redis.Client, id string, updatedData map[string]interface{}) error {
-	// Construct Redis key
-	key := fmt.Sprintf("id:%s", id)
-
-	// Set hash data in Redis
-	err := rdb.HMSet(key, updatedData).Err()
-	if err != nil {
-		return err
-	}
-
-	//get data from redis
-	// result, err := GetDataByIDFromRedis(rdb, id)
-	// fmt.Println("result", result)
-
-	fmt.Println(constants.RedisDataUpdated, key)
-	return nil
-}
-
 // function to delete data
 func DeleteIncidentReport(ctx context.Context, id string) (*model.ReportCreated, error) {
 	// Connect to MySQL database
@@ -438,7 +419,9 @@ func DeleteIncidentReport(ctx context.Context, id string) (*model.ReportCreated,
 	if err != nil {
 		return nil, fmt.Errorf(constants.FailedToConnectDb, err)
 	}
-	//defer db.Close()
+
+	// Connect to Redis
+	rdb := database.ConnectRedis()
 
 	//check if data exist
 	_, err = GetIncidentReportByID(ctx, id)
@@ -457,11 +440,92 @@ func DeleteIncidentReport(ctx context.Context, id string) (*model.ReportCreated,
 		return nil, err
 	}
 
+	_, err = DeleteDataByIDFromRedis(rdb, id)
+	if err != nil {
+		fmt.Println(constants.FailedToDeleteDataInRedis, err)
+	}
+
 	// Construct the response
 	response := &model.ReportCreated{
 		Message: constants.IncidentReportDeleted,
 	}
 	return response, err
+}
+
+func DeleteAllIncidentReports(ctx context.Context) (*model.ReportCreated, error) {
+	// Connect to MySQL database
+	db, err := database.ConnectMySQLDB()
+	if err != nil {
+		return nil, fmt.Errorf(constants.FailedToConnectDb, err)
+	}
+
+	// Connect to Redis
+	rdb := database.ConnectRedis()
+
+	query := `DELETE FROM report.injury_report`
+
+	_, err = db.ExecContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = DeleteAllDataFromRedis(rdb)
+	if err != nil {
+		return nil, fmt.Errorf(constants.FailedToDeleteAllReportsFromRedis, err)
+	}
+
+	response := &model.ReportCreated{
+		Message: constants.AllIncidentReportDeleted,
+	}
+	return response, nil
+}
+
+func DeleteAllDataFromRedis(rdb *redis.Client) (int64, error) {
+
+	keys, err := rdb.Keys("*").Result()
+	if err != nil {
+		return 0, err
+	}
+
+	// Delete all keys from Redis
+	deletedCount, err := rdb.Del(keys...).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println(constants.AllIncidentReportDeletedFromRedis)
+	return deletedCount, nil
+}
+
+func DeleteDataByIDFromRedis(rdb *redis.Client, id string) (int64, error) {
+
+	key := fmt.Sprintf("id:%s", id)
+
+	deletedCount, err := rdb.Del(key).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	return deletedCount, nil
+}
+
+// Update the data in redis
+func UpdateDataInRedis(rdb *redis.Client, id string, updatedData map[string]interface{}) error {
+	// Construct Redis key
+	key := fmt.Sprintf("id:%s", id)
+
+	// Set hash data in Redis
+	err := rdb.HMSet(key, updatedData).Err()
+	if err != nil {
+		return err
+	}
+
+	//get data from redis
+	// result, err := GetDataByIDFromRedis(rdb, id)
+	// fmt.Println("result", result)
+
+	fmt.Println(constants.RedisDataUpdated, key)
+	return nil
 }
 
 func GetDataByIDFromRedis(rdb *redis.Client, id string) (map[string]string, error) {

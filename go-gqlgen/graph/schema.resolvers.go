@@ -48,6 +48,15 @@ func (r *mutationResolver) DeleteReport(ctx context.Context, id string) (*model.
 	return response, nil
 }
 
+// DeleteAllReports is the resolver for the deleteAllReports field.
+func (r *mutationResolver) DeleteAllReports(ctx context.Context) (*model.ReportCreated, error) {
+	response, err := logic.DeleteAllIncidentReports(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 // GetIncidentReports is the resolver for the getIncidentReports field.
 func (r *queryResolver) GetIncidentReports(ctx context.Context) ([]*model.IncidentReport, error) {
 	report, err := logic.GetIncidentReport(ctx)

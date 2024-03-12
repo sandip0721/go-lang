@@ -31,6 +31,7 @@ type Mutation {
   addReport(input: addReportInput!): [IncidentReport!]!
   updateReport(input: addReportInput!): reportCreated!
   deleteReport(id: String!): reportCreated!
+  deleteAllReports: reportCreated!
 }
 
 input addReportInput {

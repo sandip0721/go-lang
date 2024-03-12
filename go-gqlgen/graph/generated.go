@@ -69,6 +69,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddReport          func(childComplexity int, input model.AddReportInput) int
+		DeleteAllReports   func(childComplexity int) int
 		DeleteReport       func(childComplexity int, id string) int
 		ImportDataFromExel func(childComplexity int) int
 		UpdateReport       func(childComplexity int, input model.AddReportInput) int
@@ -89,6 +90,7 @@ type MutationResolver interface {
 	AddReport(ctx context.Context, input model.AddReportInput) ([]*model.IncidentReport, error)
 	UpdateReport(ctx context.Context, input model.AddReportInput) (*model.ReportCreated, error)
 	DeleteReport(ctx context.Context, id string) (*model.ReportCreated, error)
+	DeleteAllReports(ctx context.Context) (*model.ReportCreated, error)
 }
 type QueryResolver interface {
 	GetIncidentReports(ctx context.Context) ([]*model.IncidentReport, error)
@@ -244,6 +246,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddReport(childComplexity, args["input"].(model.AddReportInput)), true
+
+	case "Mutation.deleteAllReports":
+		if e.complexity.Mutation.DeleteAllReports == nil {
+			break
+		}
+
+		return e.complexity.Mutation.DeleteAllReports(childComplexity), true
 
 	case "Mutation.deleteReport":
 		if e.complexity.Mutation.DeleteReport == nil {
@@ -1538,6 +1547,54 @@ func (ec *executionContext) fieldContext_Mutation_deleteReport(ctx context.Conte
 	if fc.Args, err = ec.field_Mutation_deleteReport_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteAllReports(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteAllReports(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteAllReports(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ReportCreated)
+	fc.Result = res
+	return ec.marshalNreportCreated2ᚖgoᚑgqlgenᚋgraphᚋmodelᚐReportCreated(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteAllReports(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_reportCreated_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type reportCreated", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -3965,6 +4022,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteReport":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteReport(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteAllReports":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteAllReports(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
